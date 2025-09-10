@@ -7,29 +7,36 @@
 
 using namespace std;
 
-// Convert string to hex representation (readable format)
 string toHex(const string &input) {
-    stringstream ss;
+    string result;
+    const char* hexDigits = "0123456789abcdef";
+
     for (unsigned char c : input) {
-        ss << hex << setw(2) << setfill('0') << (int)c;
+        result += hexDigits[c >> 4];   // upper 4 bits
+        result += hexDigits[c & 0xF];  // lower 4 bits
     }
-    return ss.str();
+
+    return result;
 }
 
-// Convert hex back to original string
+int hexCharToInt(char c) {
+    if (c >= '0' && c <= '9') return c - '0';
+    if (c >= 'a' && c <= 'f') return c - 'a' + 10;
+    if (c >= 'A' && c <= 'F') return c - 'A' + 10; // mostly not needed here
+    return 0; // just in case
+}
+
 string fromHex(const string &input) {
     string output;
     for (size_t i = 0; i < input.length(); i += 2) {
-        int value;
-        stringstream ss;
-        ss << hex << input.substr(i, 2);
-        ss >> value;
-        output += static_cast<char>(value);
+        int high = hexCharToInt(input[i]);
+        int low  = hexCharToInt(input[i+1]);
+        char c = (high << 4) | low; // combine upper + lower 4 bits
+        output += c;
     }
     return output;
 }
 
-// XOR Encrypt/Decrypt
 void encryptDecrypt(const string &fileName, const string &key, bool isEncrypting) {
     fstream file(fileName, ios::in | ios::out);
     
@@ -37,8 +44,10 @@ void encryptDecrypt(const string &fileName, const string &key, bool isEncrypting
         cerr << "Error opening file: " << fileName << endl;
         return;
     }
-
-    string content((istreambuf_iterator<char>(file)), istreambuf_iterator<char>());
+    string content, line;
+    while (getline(file, line)) {
+        content += line + "\n";   // add newline back since getline removes it
+    }
     file.close();
     
     if (content.empty()) {
